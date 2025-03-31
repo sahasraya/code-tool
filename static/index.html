@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Repo Manager</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h2 class="mb-4">GitHub Repository Manager</h2>
+        
+        <!-- Clone Repo Section -->
+        <div class="card p-3 mb-3">
+            <h4>Clone a Repository</h4>
+            <input type="text" id="repoUrl" class="form-control mb-2" placeholder="GitHub Repo URL">
+            <input type="text" id="branch" class="form-control mb-2" placeholder="Branch (default: main)">
+            <button class="btn btn-primary" onclick="cloneRepo()">Clone Repo</button>
+        </div>
+        
+        <!-- Select Repo Section -->
+        <div class="card p-3 mb-3">
+            <h4>Select a Cloned Repository</h4>
+            <select id="repoSelect" class="form-select" onchange="fetchFiles()">
+                <option value="">Select a repository</option>
+            </select>
+        </div>
+
+        <!-- Select File Section -->
+        <div class="card p-3 mb-3">
+            <h4>Select a File for AI Improvement</h4>
+            <select id="fileSelect" class="form-select">
+                <option value="">Select a file</option>
+            </select>
+            <select id="improvementType" class="form-select mt-2">
+                <option value="bug_fix">Bug Fix</option>
+                <option value="performance">Performance Improvement</option>
+                <option value="cleanup">Code Cleanup</option>
+            </select>
+            <button class="btn btn-success mt-2" onclick="improveCode()">Improve Code</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            fetchRepos();
+        });
+
+        function fetchRepos() {
+            fetch("/list_repos/")
+                .then(response => response.json())
+                .then(data => {
+                    let repoSelect = document.getElementById("repoSelect");
+                    repoSelect.innerHTML = "<option value=''>Select a repository</option>";
+                    data.repos.forEach(repo => {
+                        let option = document.createElement("option");
+                        option.value = repo;
+                        option.textContent = repo;
+                        repoSelect.appendChild(option);
+                    });
+                })
+                .catch(error => console.error("Error fetching repos:", error));
+        }
+
+        function fetchFiles() {
+            let repoName = document.getElementById("repoSelect").value;
+            if (!repoName) return;
+            
+            fetch(`/list_files/${repoName}`)
+                .then(response => response.json())
+                .then(data => {
+                    let fileSelect = document.getElementById("fileSelect");
+                    fileSelect.innerHTML = "<option value=''>Select a file</option>";
+                    data.files.forEach(file => {
+                        let option = document.createElement("option");
+                        option.value = file;
+                        option.textContent = file;
+                        fileSelect.appendChild(option);
+                    });
+                })
+                .catch(error => console.error("Error fetching files:", error));
+        }
+
+        function cloneRepo() {
+            let repoUrl = document.getElementById("repoUrl").value;
+            let branch = document.getElementById("branch").value || "main";
+            
+            fetch("/clone_repo/", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ repo_url: repoUrl, branch: branch })
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                fetchRepos(); // Refresh repo list after cloning
+            })
+            .catch(error => console.error("Error cloning repo:", error));
+        }
+
+        function improveCode() {
+            let repoName = document.getElementById("repoSelect").value;
+            let filePath = document.getElementById("fileSelect").value;
+            let improvementType = document.getElementById("improvementType").value;
+            
+            if (!repoName || !filePath) {
+                alert("Please select a repository and file.");
+                return;
+            }
+            
+            fetch("/improve_code/", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ repo_name: repoName, file_path: filePath, improvement_type: improvementType })
+            })
+            .then(response => response.json())
+            .then(data => alert(data.message))
+            .catch(error => console.error("Error improving code:", error));
+        }
+    </script>
+</body>
+</html>
